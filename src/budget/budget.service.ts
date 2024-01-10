@@ -10,27 +10,36 @@ import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 export class BudgetService {
   constructor(@InjectModel('Budget') private budgetModel: Model<Budget>) {}
 
-  async create(createBudgetDto: any): Promise<Budget> {
-    const createdBudget = new this.budgetModel(createBudgetDto);
+  async create(userId: string, createBudgetDto: any): Promise<Budget> {
+    const createdBudget = new this.budgetModel({
+      ...createBudgetDto,
+      userId,
+    });
     return createdBudget.save();
   }
 
-  async findAll(): Promise<Budget[]> {
-    return this.budgetModel.find().exec();
+  async findAll(userId: string): Promise<Budget[]> {
+    return this.budgetModel.find({ user: userId }).exec();
   }
 
-  async findOne(id: string): Promise<Budget> {
-    return this.budgetModel.findById(id).exec();
+  async findOne(userId: string, id: string): Promise<Budget> {
+    return this.budgetModel.findOne({ _id: id, user: userId }).exec();
   }
 
-  async update(id: string, updateBudgetDto: any): Promise<Budget> {
+  async update(
+    userId: string,
+    id: string,
+    updateBudgetDto: any,
+  ): Promise<Budget> {
     return this.budgetModel
-      .findByIdAndUpdate(id, updateBudgetDto, { new: true })
+      .findOneAndUpdate({ _id: id, user: userId }, updateBudgetDto, {
+        new: true,
+      })
       .exec();
   }
 
-  async delete(id: string): Promise<any> {
-    return this.budgetModel.findByIdAndDelete(id).exec();
+  async delete(userId: string, id: string): Promise<any> {
+    return this.budgetModel.findOneAndDelete({ _id: id, user: userId }).exec();
   }
 
   // Additional Methods
@@ -43,7 +52,7 @@ export class BudgetService {
     skip?: number,
     sort?: string | any,
   ): Promise<Budget[]> {
-    const query: any = { user: userId };
+    const query: any = { 'userId.$oid': userId };
 
     if (startDate && endDate) {
       query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };

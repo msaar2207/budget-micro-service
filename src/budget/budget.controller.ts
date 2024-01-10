@@ -11,7 +11,6 @@ import {
   HttpStatus,
   Req,
   UseGuards,
-  HttpCode,
   HttpException,
 } from '@nestjs/common';
 import { BudgetService } from './budget.service';
@@ -23,35 +22,14 @@ export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}
 
   @Post()
-  async create(@Body() createBudgetDto: any) {
-    return this.budgetService.create(createBudgetDto);
+  @UseGuards(JwtAuthGuard)
+  async create(@Body() createBudgetDto: any, @Req() req: AuthenticatedRequest) {
+    const userId: string = req.user._id;
+    return this.budgetService.create(userId, createBudgetDto);
   }
 
   @Get()
-  async findAll() {
-    return this.budgetService.findAll();
-  }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.budgetService.findOne(id);
-  }
-
-  @Put(':id')
-  async update(@Param('id') id: string, @Body() updateBudgetDto: any) {
-    return this.budgetService.update(id, updateBudgetDto);
-  }
-
-  @Delete(':id')
-  async delete(@Param('id') id: string) {
-    return this.budgetService.delete(id);
-  }
-
-  // Additional APIs
-
   @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  @Get('entries')
   async getAllEntries(@Req() req: AuthenticatedRequest) {
     try {
       const { startDate, endDate, limit, skip, sort } = req.query;
@@ -72,6 +50,30 @@ export class BudgetController {
       );
     }
   }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.budgetService.findOne(req.user._id, id);
+  }
+
+  @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  async update(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateBudgetDto: any,
+  ) {
+    return this.budgetService.update(req.user._id, id, updateBudgetDto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  async delete(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.budgetService.delete(req.user._id, id);
+  }
+
+  // Additional APIs
 
   @UseGuards(JwtAuthGuard)
   @Get('trends')

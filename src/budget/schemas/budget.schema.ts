@@ -2,8 +2,15 @@
 
 import * as mongoose from 'mongoose';
 
-export const BudgetSchema = new mongoose.Schema({
-  userId: mongoose.Schema.Types.ObjectId, // Reference to the User
-  transactionName: String,
-  amount: Number,
-});
+export const BudgetSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    name: String,
+    price: Number,
+  },
+  { timestamps: true },
+);
