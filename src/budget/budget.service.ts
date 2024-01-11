@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Budget } from './interfaces/budget.interface';
-import { TimeUnit } from 'src/common/enums/timeUnits';
+import { TimeUnit } from '../common/enums/timeUnits';
 import {
   startOfYear,
   subYears,
@@ -15,6 +15,12 @@ import {
   startOfDay,
   subDays,
   endOfDay,
+  endOfQuarter,
+  startOfQuarter,
+  subQuarters,
+  startOfWeek,
+  endOfWeek,
+  subWeeks,
 } from 'date-fns';
 
 @Injectable()
@@ -90,7 +96,7 @@ export class BudgetService {
     let trends = [];
 
     for (let i = 0; i < quantity; i++) {
-      let startDate, endDate, label;
+      let startDate: Date, endDate, label;
 
       switch (unit) {
         case TimeUnit.Years:
@@ -110,6 +116,22 @@ export class BudgetService {
           startDate = startOfDay(subDays(currentDate, i));
           endDate = endOfDay(subDays(currentDate, i));
           label = startDate.toLocaleDateString();
+          break;
+
+        case TimeUnit.Weeks:
+          startDate = startOfWeek(subWeeks(currentDate, i), {
+            weekStartsOn: 1,
+          }); // Adjust weekStartsOn based on your locale
+          endDate = endOfWeek(subWeeks(currentDate, i), { weekStartsOn: 1 });
+          label = `Week of ${startDate.toLocaleDateString()}`;
+          break;
+
+        case TimeUnit.Quarters:
+          startDate = startOfQuarter(subQuarters(currentDate, i));
+          endDate = endOfQuarter(subQuarters(currentDate, i));
+          label = `Q${Math.ceil(
+            (startDate.getMonth() + 1) / 3,
+          )} ${startDate.getFullYear()}`;
           break;
         default:
           throw new Error('Invalid time unit');
@@ -131,7 +153,7 @@ export class BudgetService {
     return { trends };
   }
 
-  private async calculateTrend(
+  async calculateTrend(
     userId: string,
     startDate: Date,
     endDate: Date,
