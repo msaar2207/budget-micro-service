@@ -16,6 +16,7 @@ import {
 import { BudgetService } from './budget.service';
 import { JwtAuthGuard } from 'src/auth/jwt/jwt-auth.guard';
 import { AuthenticatedRequest } from '../common/interfaces/express.interface';
+import { TimeUnit } from 'src/common/enums/timeUnits';
 
 @Controller('budget')
 export class BudgetController {
@@ -51,6 +52,17 @@ export class BudgetController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('trends')
+  async getBudgetTrends(@Req() req: AuthenticatedRequest) {
+    const userId = req.user?._id;
+    const trends = await this.budgetService.getBudgetTrends(
+      userId,
+      req.query.quantity as unknown as number,
+      req.query.unit as TimeUnit,
+    );
+    return { trends };
+  }
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
@@ -74,12 +86,4 @@ export class BudgetController {
   }
 
   // Additional APIs
-
-  @UseGuards(JwtAuthGuard)
-  @Get('trends')
-  async getBudgetTrends(@Req() req: AuthenticatedRequest) {
-    const userId = req.user._id;
-    const trends = await this.budgetService.getBudgetTrends(userId);
-    return { trends };
-  }
 }

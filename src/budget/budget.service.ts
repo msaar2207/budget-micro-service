@@ -4,7 +4,18 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Budget } from './interfaces/budget.interface';
-import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { TimeUnit } from 'src/common/enums/timeUnits';
+import {
+  startOfYear,
+  subYears,
+  endOfYear,
+  startOfMonth,
+  subMonths,
+  endOfMonth,
+  startOfDay,
+  subDays,
+  endOfDay,
+} from 'date-fns';
 
 @Injectable()
 export class BudgetService {
@@ -70,35 +81,54 @@ export class BudgetService {
     return this.budgetModel.find(query, null, options).exec();
   }
 
-  async getBudgetTrends(userId: string): Promise<any[]> {
+  async getBudgetTrends(
+    userId: string,
+    quantity: number,
+    unit: TimeUnit,
+  ): Promise<{ trends: Array<{ label: string; total: number }> }> {
     const currentDate = new Date();
-    const lastMonth = subMonths(currentDate, 1);
-    const last6Months = subMonths(currentDate, 6);
-    const last12Months = subMonths(currentDate, 12);
+    let trends = [];
 
-    const [lastMonthData, last6MonthsData, last12MonthsData] =
-      await Promise.all([
-        this.calculateTrend(
-          userId,
-          startOfMonth(lastMonth),
-          endOfMonth(lastMonth),
-          'Last Month',
-        ),
-        this.calculateTrend(
-          userId,
-          startOfMonth(last6Months),
-          currentDate,
-          'Last 6 Months',
-        ),
-        this.calculateTrend(
-          userId,
-          startOfMonth(last12Months),
-          currentDate,
-          'Last 12 Months',
-        ),
-      ]);
+    for (let i = 0; i < quantity; i++) {
+      let startDate, endDate, label;
 
-    return [lastMonthData, last6MonthsData, last12MonthsData];
+      switch (unit) {
+        case TimeUnit.Years:
+          startDate = startOfYear(subYears(currentDate, i));
+          endDate = endOfYear(subYears(currentDate, i));
+          label = startDate.getFullYear().toString();
+          break;
+        case TimeUnit.Months:
+          startDate = startOfMonth(subMonths(currentDate, i));
+          endDate = endOfMonth(subMonths(currentDate, i));
+          label = startDate.toLocaleString('default', {
+            month: 'long',
+            year: 'numeric',
+          });
+          break;
+        case TimeUnit.Days:
+          startDate = startOfDay(subDays(currentDate, i));
+          endDate = endOfDay(subDays(currentDate, i));
+          label = startDate.toLocaleDateString();
+          break;
+        default:
+          throw new Error('Invalid time unit');
+      }
+
+      const trendData = await this.calculateTrend(
+        userId,
+        startDate,
+        endDate,
+        label,
+      );
+
+      trends.push(trendData);
+    }
+
+    // Reverse the array to start from the earliest to the most recent
+    trends = trends.reverse();
+
+    return { trends };
   }
 
   private async calculateTrend(
@@ -109,9 +139,12 @@ export class BudgetService {
   ): Promise<{ label: string; total: number }> {
     const totalSpent = await this.budgetModel.aggregate([
       {
-        $match: { user: userId, createdAt: { $gte: startDate, $lte: endDate } },
+        $match: {
+          userId,
+          createdAt: { $gte: startDate, $lte: endDate },
+        },
       },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
+      { $group: { _id: null, total: { $sum: '$price' } } },
     ]);
     const total = totalSpent[0]?.total || 0;
     return { label, total };
