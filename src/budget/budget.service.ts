@@ -36,11 +36,11 @@ export class BudgetService {
   }
 
   async findAll(userId: string): Promise<Budget[]> {
-    return this.budgetModel.find({ user: userId }).exec();
+    return this.budgetModel.find({ userId }).exec();
   }
 
   async findOne(userId: string, id: string): Promise<Budget> {
-    return this.budgetModel.findOne({ _id: id, user: userId }).exec();
+    return this.budgetModel.findOne({ _id: id, userId }).exec();
   }
 
   async update(
@@ -49,14 +49,14 @@ export class BudgetService {
     updateBudgetDto: any,
   ): Promise<Budget> {
     return this.budgetModel
-      .findOneAndUpdate({ _id: id, user: userId }, updateBudgetDto, {
+      .findOneAndUpdate({ _id: id, userId }, updateBudgetDto, {
         new: true,
       })
       .exec();
   }
 
   async delete(userId: string, id: string): Promise<any> {
-    return this.budgetModel.findOneAndDelete({ _id: id, user: userId }).exec();
+    return this.budgetModel.findOneAndDelete({ _id: id, userId }).exec();
   }
 
   // Additional Methods
@@ -69,7 +69,7 @@ export class BudgetService {
     skip?: number,
     sort?: string | any,
   ): Promise<Budget[]> {
-    const query: any = { 'userId.$oid': userId };
+    const query: any = { userId };
 
     if (startDate && endDate) {
       query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
